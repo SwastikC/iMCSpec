@@ -15,22 +15,4 @@ statsmodels>=0.11.1
 dill>=0.3.2
 emcee>=3.0.2
 corner>=2.1.1
-
-Let us import all the necessary packages that are required for this analysis. 
-import os
-import sys
-import numpy as np
-import pandas as pd
-import emcee
-from multiprocessing import Pool
-import matplotlib.pyplot as plt
-
-os.environ["OMP_NUM_THREADS"] = "1"
-os.environ['QT_QPA_PLATFORM']='offscreen'
-os.environ["NUMEXPR_MAX_THREADS"] = "8"      #CHECK NUMBER OF CORES ON YOUR MACHINE AND CHOOSE APPROPRIATELY 
-
-ispec_dir = '/home/swastik/iSpec'               #MENTION YOUR DIRECTORY WHERE iSPEC is present     
-sys.path.insert(0, os.path.abspath(ispec_dir))
-
-import ispec
-#np.seterr(all="ignore")                     #FOR MCMC THE WARNING COMES FOR RED BLUE MOVES WHEN ANY PARTICULAR WALKER VALUE DONOT LIE IN THE PARAMETER SPACE
+Please check iMCspec.py for complete details
