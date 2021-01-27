@@ -29,4 +29,4 @@ emcee>=3.0.2
 
 corner>=2.1.1
 
-Please check iMCspec.py for complete details
+Please check iMCspec.ipynb for complete details
