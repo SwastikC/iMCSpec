@@ -3,7 +3,8 @@ import sys
 import numpy as np
 import pandas as pd
 import emcee
-from multiprocessing import Pool
+from schwimmbad import MPIPool
+# from multiprocessing import Pool
 import matplotlib.pyplot as plt
 from numpy import inf
 
@@ -11,25 +12,26 @@ from numpy import inf
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ['QT_QPA_PLATFORM']='offscreen'
 
-ispec_dir = '/home/swastik/iSpec'      
+ispec_dir = '/home/swastik/iSpec'
 sys.path.insert(0, os.path.abspath(ispec_dir))
 
 import ispec
 np.seterr(all="ignore")
 
-df = pd.read_csv('/home/swastik/HPksiHya.txt', sep ='\s+')
+df = pd.read_csv('/home/swastik/HPksiHya.txt', sep='\s+')
 
-df = df[df.flux != 0] 
+df = df[df.flux != 0]
 x = df['waveobs'].values
 y = df['flux'].values
 yerr = df['err'].values
-df = np.array(df,dtype=[('waveobs', '<f8'), ('flux', '<f8'), ('err', '<f8')])
+df = np.array(df, dtype=[('waveobs', '<f8'), ('flux', '<f8'), ('err', '<f8')])
+
 
 def synthesize_spectrum(theta):
-    teff ,logg ,MH = theta
+    teff, logg, MH = theta
 #    alpha = ispec.determine_abundance_enchancements(MH)
-#    microturbulence_vel = ispec.estimate_vmic(teff, logg, MH) 
-#    macroturbulence = ispec.estimate_vmac(teff, logg, MH) 
+#    microturbulence_vel = ispec.estimate_vmic(teff, logg, MH)
+#    macroturbulence = ispec.estimate_vmac(teff, logg, MH)
     microturbulence_vel = 1.23
     macroturbulence = 3.70
     alpha = 0
@@ -48,8 +50,8 @@ def synthesize_spectrum(theta):
     abundances = None
     atmosphere_layers = None
 
-    
-    
+
+
     if not ispec.valid_interpolated_spectrum_target(grid, {'teff':teff, 'logg':logg, 'MH':MH, 'alpha':alpha, 'vmic': microturbulence_vel}):
         msg = "The specified effective temperature, gravity (log g) and metallicity [M/H] \
                 fall out of the spectral grid limits."
@@ -67,8 +69,11 @@ def synthesize_spectrum(theta):
     return synth_spectrum
 
 
-walkers = eval(input("Enter Walkers: "))
-Iter = eval(input("Enter Iterations: "))
+# walkers = eval(input("Enter Walkers: "))
+# Iter = eval(input("Enter Iterations: "))
+walkers = 10
+Iter = 10
+
 
 def log_likelihood(theta):
     model = synthesize_spectrum(theta)
@@ -93,21 +98,25 @@ def log_probability(theta):
         return -np.inf
     return lp + log_likelihood(theta)
 
-initial = np.array([5000,3.0,0.1])
-#5873	3.98	-0.07
-#5044	2.87	0.14
-#4983	2.77	0.13
-pos = initial + np.array([100,0.1,0.1])*np.random.randn(walkers, 3)
-nwalkers, ndim = pos.shape
 
-sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability)
-sampler.run_mcmc(pos,Iter, progress=True)
+with MPIPool() as pool:
+    if not pool.is_master():
+        pool.wait()
+        sys.exit(0)
+
+    initial = np.array([5000, 3.0, 0.1])
+
+    pos = initial + np.array([100, 0.1, 0.1])*np.random.randn(walkers, 3)
+    nwalkers, ndim = pos.shape
+
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, log_probability,  pool=pool)
+    sampler.run_mcmc(pos, Iter, progress=True)
 
 fig, axes = plt.subplots(3, figsize=(10, 7), sharex=True)
 samples = sampler.get_chain()
 accepted = sampler.backend.accepted.astype(bool)
 
-labels = ["teff","logg","MH","vsini"]
+labels = ["teff", "logg", "MH", "vsini"]
 for i in range(ndim):
     ax = axes[i]
     ax.plot(samples[:, :, i], "k", alpha=0.3)
@@ -141,4 +150,3 @@ axes[-1].set_xlabel("step number")
 plt.savefig('HPksiHyac.pdf')
 flat_samples = new_samples.reshape(-1,new_samples.shape[2])
 np.savetxt("RNHPksiHya.txt",flat_samples)
-
