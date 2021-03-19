@@ -30,3 +30,6 @@ emcee>=3.0.2
 corner>=2.1.1
 
 Please check iMCspec.ipynb for complete details
+
+For MPI pool and other advanced features the notebook is not yet updated. The code iMCspec.py is the latest one with MPI pool feature, thanks to Sonith LS for the contribution. You can use that feature in notebook as well by just copying that part. You can also give your suggestions and imporvements for the code...
+Happy coding !! 
